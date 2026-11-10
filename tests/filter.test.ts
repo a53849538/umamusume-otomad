@@ -41,6 +41,22 @@ describe("filterVideos", () => {
   });
 });
 
+describe("sort order", () => {
+  it("sorts by duration, longest first", () => {
+    const vs = indexVideos([
+      makeVideo({ id: "a", duration: 30 }),
+      makeVideo({ id: "b", duration: 300 }),
+      makeVideo({ id: "c", duration: 90 }),
+    ]);
+    expect(ids(filterVideos(vs, { ...DEFAULT_STATE, sort: "duration" }))).toEqual(["b", "c", "a"]);
+  });
+  it("reverses every sort with order asc", () => {
+    expect(ids(filterVideos(items, { ...DEFAULT_STATE, order: "asc" }))).toEqual(["sm1", "yt:a", "sm2"]);
+    expect(ids(filterVideos(items, { ...DEFAULT_STATE, sort: "views", order: "asc" }))).toEqual(["sm1", "yt:a", "sm2"]);
+    expect(ids(filterVideos(items, { ...DEFAULT_STATE, sort: "likes", order: "asc" }))).toEqual(["sm2", "sm1", "yt:a"]);
+  });
+});
+
 describe("characterCounts", () => {
   it("counts characters", () => {
     expect(characterCounts(videos)).toEqual([

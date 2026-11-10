@@ -22,6 +22,7 @@ const charaInput = $<HTMLInputElement>("chara");
 const authorInput = $<HTMLInputElement>("author");
 const srcSelect = $<HTMLSelectElement>("src");
 const sortSelect = $<HTMLSelectElement>("sort");
+const orderButton = $<HTMLButtonElement>("order");
 const browse = $<HTMLElement>("browse");
 const watch = $<HTMLElement>("watch");
 const watchAuthor = $<HTMLButtonElement>("watch-author");
@@ -132,6 +133,12 @@ function syncInputs() {
   authorCombo.setValue(state.author);
   srcSelect.value = state.src;
   sortSelect.value = state.sort;
+  // スマホでは文字を隠して矢印だけにする（並び順の選択欄の幅を空けるため）
+  const label = document.createElement("span");
+  label.className = "order-label";
+  label.textContent = state.order === "asc" ? "昇順" : "降順";
+  orderButton.replaceChildren(state.order === "asc" ? "↑ " : "↓ ", label);
+  orderButton.setAttribute("aria-label", state.order === "asc" ? "昇順で並んでいます。押すと降順にします" : "降順で並んでいます。押すと昇順にします");
 }
 
 window.addEventListener("popstate", () => {
@@ -147,6 +154,11 @@ qInput.addEventListener("input", () => {
 });
 srcSelect.addEventListener("change", () => update({ src: srcSelect.value as State["src"] }));
 sortSelect.addEventListener("change", () => update({ sort: sortSelect.value as State["sort"] }));
+// 降順（新しい順・多い順・長い順）と昇順を切り替える
+orderButton.addEventListener("click", () => {
+  update({ order: state.order === "asc" ? "desc" : "asc" });
+  syncInputs();
+});
 
 // 再生は続けたまま、「次に見る」をこの投稿者の動画にする
 watchAuthor.addEventListener("click", () => {

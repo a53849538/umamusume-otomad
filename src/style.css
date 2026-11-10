@@ -97,6 +97,45 @@ body {
   outline-offset: -1px;
 }
 
+/* 並び順の選択欄と、昇順・降順の切り替えボタンを1つにまとめる（スマホでも同じ行に並ぶ） */
+.sort-group {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sort-group select {
+  flex: 1;
+}
+
+.order {
+  flex: none;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .order-label {
+    display: none;
+  }
+}
+
+.order:hover {
+  border-color: var(--accent-line);
+}
+
+.order:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: -1px;
+}
+
 /* キャラ・投稿者の絞り込み欄（自前の候補リスト） */
 .combo {
   position: relative;

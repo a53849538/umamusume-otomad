@@ -4,13 +4,14 @@ import type { Video } from "./types.ts";
 export type State = {
   q: string;
   src: "all" | "nico" | "youtube";
-  sort: "new" | "views" | "likes";
+  sort: "new" | "views" | "likes" | "duration";
+  order: "desc" | "asc"; // desc は新しい順・多い順・長い順
   chara: string;
   author: string; // 投稿者名
   v: string; // 視聴ページで再生中の動画 ID。一覧のときは空
 };
 
-export const DEFAULT_STATE: State = { q: "", src: "all", sort: "new", chara: "", author: "", v: "" };
+export const DEFAULT_STATE: State = { q: "", src: "all", sort: "new", order: "desc", chara: "", author: "", v: "" };
 
 export type Indexed = { video: Video; haystack: string };
 
@@ -22,10 +23,12 @@ export function indexVideos(videos: Video[]): Indexed[] {
   }));
 }
 
+// 降順（新しい順・多い順・長い順）で書き、昇順は向きを反対にして使う
 const COMPARE: Record<State["sort"], (a: Video, b: Video) => number> = {
   new: (a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt),
   views: (a, b) => b.views - a.views,
   likes: (a, b) => b.likes - a.likes,
+  duration: (a, b) => b.duration - a.duration,
 };
 
 export function filterVideos(items: Indexed[], state: State): Video[] {
@@ -38,7 +41,7 @@ export function filterVideos(items: Indexed[], state: State): Video[] {
       terms.every((t) => haystack.includes(t)),
     )
     .map((i) => i.video)
-    .sort(COMPARE[state.sort]);
+    .sort(state.order === "asc" ? (a, b) => COMPARE[state.sort](b, a) : COMPARE[state.sort]);
 }
 
 // 視聴ページの「次に見る」。絞り込み結果の並びのまま、再生中の動画だけ除く

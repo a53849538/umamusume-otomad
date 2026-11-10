@@ -37,11 +37,15 @@
           <option value="nico">ニコ動</option>
           <option value="youtube">YouTube</option>
         </select>
-        <select id="sort" aria-label="並び順">
-          <option value="new">新着順</option>
-          <option value="views">再生数順</option>
-          <option value="likes">いいね数順</option>
-        </select>
+        <div class="sort-group">
+          <select id="sort" aria-label="並び順">
+            <option value="new">投稿日時</option>
+            <option value="views">再生数</option>
+            <option value="likes">いいね数</option>
+            <option value="duration">再生時間</option>
+          </select>
+          <button id="order" class="order" type="button"></button>
+        </div>
       </div>
     </header>
 
