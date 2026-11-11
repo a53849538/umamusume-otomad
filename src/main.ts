@@ -8,6 +8,7 @@ import {
   deletePlaylist,
   loadPlaylists,
   newPlaylistId,
+  nextId,
   parseShare,
   removeItem,
   renamePlaylist,
@@ -240,6 +241,48 @@ document.addEventListener("keydown", (e) => {
 
 let lastVideoId = "";
 
+// プレイリストを再生中の視聴ページ
+const upNextSide = $<HTMLElement>("upnext-side");
+const playlistSide = $<HTMLElement>("playlist-side");
+const playlistList = $<HTMLElement>("playlist-list");
+let wasPlaylistWatch = false;
+
+// 再生順。一覧にある動画だけ。シャッフルなら始めたときの順を使い、中身が変わったら作り直す
+function playOrder(p: Playlist): string[] {
+  const available = p.items.filter((id) => byId.has(id));
+  if (!state.shuffle) return available;
+  const saved = shuffleOrders.get(p.id);
+  if (saved && saved.length === available.length && saved.every((id) => available.includes(id))) return saved;
+  const order = shuffled(available);
+  shuffleOrders.set(p.id, order);
+  return order;
+}
+
+function renderPlaylistWatch(current: Video, p: Playlist) {
+  const order = playOrder(p);
+  showVideo(current, () => {
+    const next = nextId(order, current.id, p.loop);
+    if (next) update({ v: next });
+  });
+  const position = order.indexOf(current.id) + 1;
+  $("playlist-title").textContent = `${p.name}　${position > 0 ? position : "-"}/${order.length}`;
+  $("playlist-mode").textContent = [state.shuffle ? "シャッフル再生" : "順番どおりに再生", p.loop ? "ループあり" : "最後で止まる"].join("・");
+  const sideTop = watchSide.scrollTop;
+  const pageY = window.scrollY;
+  playlistList.replaceChildren();
+  const videos = order.map((id) => byId.get(id)).filter((v): v is Video => v !== undefined);
+  renderCards(playlistList, videos, (v) => update({ v: v.id }));
+  playlistList.querySelectorAll(".card").forEach((card, i) => card.classList.toggle("is-current", videos[i]?.id === current.id));
+  if (wasPlaylistWatch) {
+    // 同じプレイリストの中で動画を切り替えたときは、位置をそのまま残す
+    watchSide.scrollTop = sideTop;
+    window.scrollTo({ top: pageY });
+  } else {
+    watchSide.scrollTop = 0;
+    window.scrollTo({ top: 0 });
+  }
+}
+
 function renderMain() {
   const results = filterVideos(items, state);
   const current = state.v ? byId.get(state.v) : undefined;
@@ -255,6 +298,20 @@ function renderMain() {
   // 動画が変わったら「＋ 保存」のパネルは閉じる
   if (state.v !== lastVideoId) setSavePanel(false);
   lastVideoId = state.v;
+
+  const playlist = current && state.list ? lists.find((p) => p.id === state.list) : undefined;
+  upNextSide.hidden = Boolean(playlist);
+  playlistSide.hidden = !playlist;
+  if (current && playlist) {
+    renderPlaylistWatch(current, playlist);
+    watchAuthor.hidden = !current.author;
+    watchAuthor.textContent = current.author ? `${current.author.name} さんの動画を見る` : "";
+    wasPlaylistWatch = true;
+    wasWatching = true;
+    upNextKey = null;
+    return;
+  }
+  wasPlaylistWatch = false;
 
   if (current) {
     const next = upNext(results, current.id);

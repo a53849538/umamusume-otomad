@@ -808,3 +808,15 @@ main {
 .save-panel .pl-create {
   margin: 6px 0 0;
 }
+
+/* プレイリスト再生中の横の一覧。再生中の動画に印を付ける */
+#upnext-side[hidden],
+#playlist-side[hidden] {
+  display: none;
+}
+
+.watch-list .card.is-current {
+  border-color: var(--accent-line);
+  background: var(--surface-2);
+  box-shadow: inset 4px 0 0 var(--accent);
+}

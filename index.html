@@ -79,10 +79,17 @@
           <div id="save-panel" class="save-panel" hidden></div>
         </div>
         <aside class="watch-side">
-          <h3 class="watch-side-title">次に見る <span id="watch-count" class="count"></span></h3>
-          <div id="watch-list" class="watch-list"></div>
-          <p id="watch-empty" class="empty" hidden>ほかに動画がありません</p>
-          <button id="watch-more" class="more" type="button" hidden>もっと見る</button>
+          <div id="upnext-side">
+            <h3 class="watch-side-title">次に見る <span id="watch-count" class="count"></span></h3>
+            <div id="watch-list" class="watch-list"></div>
+            <p id="watch-empty" class="empty" hidden>ほかに動画がありません</p>
+            <button id="watch-more" class="more" type="button" hidden>もっと見る</button>
+          </div>
+          <div id="playlist-side" hidden>
+            <h3 id="playlist-title" class="watch-side-title"></h3>
+            <p id="playlist-mode" class="pl-note"></p>
+            <div id="playlist-list" class="watch-list"></div>
+          </div>
         </aside>
       </section>
     </main>
