@@ -13,6 +13,7 @@ import {
   setLoop,
   shareSearch,
   shuffled,
+  swapItems,
   toggleItem,
   type Playlist,
 } from "../src/playlists.ts";
@@ -49,6 +50,13 @@ describe("playlist operations", () => {
     expect(moveItem(lists, "pl", 2, -1)[0].items).toEqual(["a", "c", "b"]);
     expect(moveItem(lists, "pl", 0, -1)[0].items).toEqual(["a", "b", "c"]);
     expect(moveItem(lists, "pl", 2, 1)[0].items).toEqual(["a", "b", "c"]);
+  });
+
+  it("swaps two videos by id, even with hidden videos between them", () => {
+    // "gone" は一覧から外れて画面に出ない動画。画面では a の次が b に見える
+    const lists = one(["a", "gone", "b", "c"]);
+    expect(swapItems(lists, "pl", "a", "b")[0].items).toEqual(["b", "gone", "a", "c"]);
+    expect(swapItems(lists, "pl", "a", "zzz")[0].items).toEqual(["a", "gone", "b", "c"]);
   });
 
   it("renames, deletes, removes items and sets loop", () => {

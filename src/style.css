@@ -55,6 +55,28 @@ body {
   padding: 14px 16px 50px;
 }
 
+.bar-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.playlists-link {
+  flex: none;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.playlists-link:hover {
+  border-color: var(--accent-line);
+}
+
 .logo {
   margin: 0 0 10px;
   font-size: 1.2rem;
@@ -605,4 +627,139 @@ main {
 .watch-list .meta,
 .watch-list .author {
   font-size: 0.75rem;
+}
+
+/* プレイリストの画面 */
+.playlists {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.playlists[hidden] {
+  display: none;
+}
+
+.pl-title {
+  margin: 4px 0 8px;
+  font-size: 1.3rem;
+}
+
+.pl-note {
+  margin: 4px 0 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.pl-back {
+  margin-bottom: 12px;
+}
+
+.pl-create {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.pl-create input,
+.pl-name {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.pl-name {
+  width: 100%;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.pl-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pl-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pl-item:hover {
+  border-color: var(--accent-line);
+}
+
+.pl-item-name {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.pl-item-count {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.pl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 8px 0 16px;
+}
+
+.pl-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pl-delete {
+  margin-left: auto;
+}
+
+.pl-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.pl-row > .card {
+  flex: 1;
+  min-width: 0;
+}
+
+.pl-row-controls {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.pl-icon {
+  width: 32px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pl-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
 }

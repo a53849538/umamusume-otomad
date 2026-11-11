@@ -19,7 +19,10 @@
   </head>
   <body>
     <header class="bar">
-      <h1 class="logo"><a id="home" href="./">ウマ娘 音MAD まとめ</a></h1>
+      <div class="bar-top">
+        <h1 class="logo"><a id="home" href="./">ウマ娘 音MAD まとめ</a></h1>
+        <a id="playlists-link" class="playlists-link" href="?view=playlists">プレイリスト</a>
+      </div>
       <div class="controls">
         <input id="q" type="search" placeholder="タイトル・キャラ・タグで検索" aria-label="キーワード検索" />
         <div class="combo">
@@ -50,6 +53,8 @@
     </header>
 
     <main>
+      <section id="playlists" class="playlists" hidden></section>
+
       <section id="browse">
         <p id="count" class="count"></p>
         <div id="grid" class="grid"></div>

@@ -3,6 +3,22 @@ import videosJson from "../data/videos.json";
 import { DEFAULT_STATE, authorCounts, characterCounts, filterVideos, indexVideos, nextInList, upNext, type State } from "./filter.ts";
 import { formatDate } from "./format.ts";
 import { createCombo } from "./combo.ts";
+import {
+  createPlaylist,
+  deletePlaylist,
+  loadPlaylists,
+  newPlaylistId,
+  parseShare,
+  removeItem,
+  renamePlaylist,
+  savePlaylists,
+  setLoop,
+  shareSearch,
+  shuffled,
+  swapItems,
+  type Playlist,
+} from "./playlists.ts";
+import { renderNotFound, renderPlaylistDetail, renderPlaylistIndex, renderShared } from "./playlist-view.ts";
 import { renderCards } from "./render.ts";
 import type { Video, VideosFile } from "./types.ts";
 import { parseState, stringifyState } from "./url-state.ts";
@@ -79,10 +95,113 @@ let browseScrollY = 0;
 let gridKey: string | null = null; // 今の一覧を作ったときの絞り込み（v 以外）
 let upNextKey: string | null = null;
 
+// プレイリスト。この端末のブラウザに保存する
+let lists: Playlist[] = loadPlaylists();
+// シャッフル再生の順番。プレイリストごとに、再生を始めたときに作ってページを開いている間だけ使う
+const shuffleOrders = new Map<string, string[]>();
+const playlistsSection = $<HTMLElement>("playlists");
+let playlistsPageKey = "";
+
+function setLists(next: Playlist[]) {
+  lists = next;
+  savePlaylists(lists);
+}
+
+// 保存している ID から、今の一覧にある動画を引く。無いものは数だけ返す
+function resolveVideos(ids: string[]): { videos: Video[]; missing: number } {
+  const videos = ids.map((id) => byId.get(id)).filter((v): v is Video => v !== undefined);
+  return { videos, missing: ids.length - videos.length };
+}
+
+function renderPlaylistsPage(shared: { name: string; items: string[] } | null) {
+  const toIndex = () => update({ view: "playlists", list: "" }, { push: true });
+  if (shared) {
+    const { videos, missing } = resolveVideos(shared.items);
+    renderShared(playlistsSection, shared.name, videos, missing, () => {
+      const id = newPlaylistId();
+      setLists(createPlaylist(lists, shared.name, new Date(), id).map((p) => (p.id === id ? { ...p, items: shared.items } : p)));
+      update({ view: "playlist", list: id }, { push: true });
+    });
+    return;
+  }
+  if (state.view === "playlists") {
+    renderPlaylistIndex(playlistsSection, lists, {
+      onOpen: (id) => update({ view: "playlist", list: id }, { push: true }),
+      onCreate: (name) => {
+        const id = newPlaylistId();
+        setLists(createPlaylist(lists, name, new Date(), id));
+        update({ view: "playlist", list: id }, { push: true });
+      },
+    });
+    return;
+  }
+  const p = lists.find((x) => x.id === state.list);
+  if (!p) return renderNotFound(playlistsSection, toIndex);
+  const { videos, missing } = resolveVideos(p.items);
+  const change = (next: Playlist[]) => {
+    setLists(next);
+    render();
+  };
+  renderPlaylistDetail(playlistsSection, p, videos, missing, {
+    onPlay: (shuffle) => {
+      const order = shuffle ? shuffled(videos.map((v) => v.id)) : videos.map((v) => v.id);
+      if (shuffle) shuffleOrders.set(p.id, order);
+      update({ view: "", list: p.id, v: order[0], shuffle }, { push: true });
+    },
+    onOpenVideo: (v) => update({ view: "", list: p.id, v: v.id, shuffle: false }, { push: true }),
+    // 画面で隣り合う2本を入れ替える（一覧から外れた動画が間にあっても画面どおり）
+    onMove: (i, delta) => {
+      const other = videos[i + delta];
+      if (other) change(swapItems(lists, p.id, videos[i].id, other.id));
+    },
+    onRemove: (videoId) => change(removeItem(lists, p.id, videoId)),
+    onRename: (name) => change(renamePlaylist(lists, p.id, name)),
+    onDelete: () => {
+      setLists(deletePlaylist(lists, p.id));
+      shuffleOrders.delete(p.id);
+      toIndex();
+    },
+    onLoop: (loop) => change(setLoop(lists, p.id, loop)),
+    onShare: () => {
+      const url = location.origin + location.pathname + shareSearch(p);
+      navigator.clipboard
+        .writeText(url)
+        .then(() => alert("共有用の URL をコピーしました"))
+        .catch(() => prompt("この URL を共有してください", url));
+    },
+    onBack: toIndex,
+  });
+}
+
 function render() {
+  const shared = !state.v && !state.view ? parseShare(location.search) : null;
+  const onPlaylists = Boolean(shared || state.view);
+  playlistsSection.hidden = !onPlaylists;
+  if (onPlaylists) {
+    // 一覧から離れるときは、戻ってきたときのために位置を覚えておく（視聴ページと同じ扱い）
+    if (!wasWatching) browseScrollY = window.scrollY;
+    browse.hidden = true;
+    watch.hidden = true;
+    document.body.classList.remove("watching");
+    stopVideo();
+    renderPlaylistsPage(shared);
+    // 同じ画面のまま中身を変えたとき（並べ替えなど）は位置を動かさない
+    const pageKey = shared ? "shared" : state.view + state.list;
+    if (pageKey !== playlistsPageKey) window.scrollTo({ top: 0 });
+    playlistsPageKey = pageKey;
+    wasWatching = true;
+    upNextKey = null;
+    return;
+  }
+  playlistsPageKey = "";
+  renderMain();
+}
+
+function renderMain() {
   const results = filterVideos(items, state);
   const current = state.v ? byId.get(state.v) : undefined;
-  const key = stringifyState({ ...state, v: "" });
+  // 一覧の中身を決める絞り込み（見ている動画やプレイリストは含めない）
+  const key = stringifyState({ ...state, v: "", view: "", list: "", shuffle: false });
   // 一覧から視聴ページへ移る前に、一覧の位置を覚えておく
   if (current && !wasWatching) browseScrollY = window.scrollY;
 
@@ -187,7 +306,14 @@ watchAuthor.addEventListener("click", () => {
   authorCombo.setValue(name);
   update({ author: name });
 });
-$("watch-back").addEventListener("click", () => update({ v: "" }));
+$("watch-back").addEventListener("click", () => update({ v: "", list: "", shuffle: false }));
+
+// ヘッダーの「プレイリスト」。Ctrl などを押しながらなら普通のリンクとして新しいタブで開く
+$<HTMLAnchorElement>("playlists-link").addEventListener("click", (e) => {
+  if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  update({ view: "playlists", v: "", list: "", shuffle: false }, { push: true });
+});
 
 // タイトルを押すと、絞り込みも外した最初の一覧に戻る。Ctrl などを押しながらなら普通のリンクとして新しいタブで開く
 $<HTMLAnchorElement>("home").addEventListener("click", (e) => {

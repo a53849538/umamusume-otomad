@@ -62,6 +62,18 @@ export function moveItem(lists: Playlist[], id: string, index: number, delta: -1
   });
 }
 
+// 画面で隣り合う2本を ID で入れ替える。一覧から外れた動画が間に挟まっていても、画面どおりに動く
+export function swapItems(lists: Playlist[], id: string, a: string, b: string): Playlist[] {
+  return update(lists, id, (p) => {
+    const i = p.items.indexOf(a);
+    const j = p.items.indexOf(b);
+    if (i < 0 || j < 0) return p;
+    const items = [...p.items];
+    [items[i], items[j]] = [items[j], items[i]];
+    return { ...p, items };
+  });
+}
+
 export function setLoop(lists: Playlist[], id: string, loop: boolean): Playlist[] {
   return update(lists, id, (p) => ({ ...p, loop }));
 }
