@@ -14,6 +14,9 @@ const NICO_ORIGIN = "https://embed.nicovideo.jp";
 let playingId = "";
 let onEndedNow: () => void = () => {};
 let youtube: YT.Player | null = null;
+// loadVideoById はプレーヤーの準備（onReady）ができるまで使えない。それまでに選ばれた動画を覚えておく
+let youtubeReady = false;
+let youtubeWanted = "";
 let nicoFrame: HTMLIFrameElement | null = null;
 let nicoPlayerId = 0; // iframe を作るたびに増やし、前のプレーヤーからの知らせと見分ける
 
@@ -48,6 +51,7 @@ function loadYouTubeApi(): Promise<void> {
 function clearPlayer() {
   youtube?.destroy();
   youtube = null;
+  youtubeReady = false;
   nicoFrame = null;
   frame.replaceChildren();
 }
@@ -66,8 +70,12 @@ function playNico(video: Video) {
 
 async function playYouTube(video: Video) {
   const videoId = video.id.replace(/^yt:/, "");
+  youtubeWanted = videoId;
   // YouTube から YouTube への切り替えは、プレーヤーを作り直さない
-  if (youtube) return youtube.loadVideoById(videoId);
+  if (youtube) {
+    if (youtubeReady) youtube.loadVideoById(videoId);
+    return;
+  }
   clearPlayer();
   const holder = document.createElement("div");
   frame.replaceChildren(holder);
@@ -80,7 +88,13 @@ async function playYouTube(video: Video) {
     width: "100%",
     height: "100%",
     playerVars: { autoplay: 1, playsinline: 1 },
-    events: { onStateChange: (e) => e.data === 0 && onEndedNow() },
+    events: {
+      onReady: () => {
+        youtubeReady = true;
+        if (youtubeWanted !== videoId) youtube?.loadVideoById(youtubeWanted);
+      },
+      onStateChange: (e) => e.data === 0 && onEndedNow(),
+    },
   });
 }
 

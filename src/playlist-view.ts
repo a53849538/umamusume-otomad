@@ -128,9 +128,16 @@ export function renderPlaylistDetail(
   );
 }
 
-export function renderShared(container: HTMLElement, name: string, videos: Video[], missing: number, onSave: () => void): void {
+export function renderShared(
+  container: HTMLElement,
+  name: string,
+  videos: Video[],
+  missing: number,
+  onSave: () => void,
+  onOpenVideo: (v: Video) => void,
+): void {
   const list = el("div", "watch-list pl-videos");
-  renderCards(list, videos, () => onSave());
+  renderCards(list, videos, onOpenVideo);
   container.replaceChildren(
     el("p", "pl-note", "共有されたプレイリスト"),
     el("h2", "pl-title", name),

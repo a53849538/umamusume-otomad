@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  changeStored,
   createPlaylist,
   deletePlaylist,
   loadPlaylists,
@@ -96,6 +97,41 @@ describe("storage", () => {
 
   it("does not throw when saving fails", () => {
     expect(() => savePlaylists([], { setItem: () => { throw new Error("quota"); } })).not.toThrow();
+  });
+});
+
+describe("storage that the browser blocks", () => {
+  it("does not throw when reading the global localStorage itself throws", () => {
+    // Chrome の「すべての Cookie をブロック」などでは、localStorage に触れただけで SecurityError になる
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      get() {
+        throw new Error("SecurityError");
+      },
+    });
+    try {
+      expect(loadPlaylists()).toEqual([]);
+      expect(() => savePlaylists([])).not.toThrow();
+    } finally {
+      delete (globalThis as { localStorage?: unknown }).localStorage;
+    }
+  });
+});
+
+describe("changeStored", () => {
+  // 2つのタブが同じ保存先を使う
+  function memoryStorage() {
+    let value: string | null = null;
+    return { getItem: () => value, setItem: (_k: string, v: string) => void (value = v) };
+  }
+
+  it("keeps a playlist that another tab saved in the meantime", () => {
+    const storage = memoryStorage();
+    // タブ A と B が、それぞれ別のプレイリストを作る
+    changeStored((l) => createPlaylist(l, "A のリスト", now, "pl-a"), storage);
+    const afterB = changeStored((l) => createPlaylist(l, "B のリスト", now, "pl-b"), storage);
+    expect(afterB.map((p) => p.id)).toEqual(["pl-a", "pl-b"]);
+    expect(loadPlaylists(storage).map((p) => p.id)).toEqual(["pl-a", "pl-b"]);
   });
 });
 

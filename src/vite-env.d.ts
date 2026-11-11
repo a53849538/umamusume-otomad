@@ -11,7 +11,7 @@ declare namespace YT {
     width?: string | number;
     height?: string | number;
     playerVars?: Record<string, number | string>;
-    events?: { onStateChange?: (e: { data: number }) => void };
+    events?: { onReady?: () => void; onStateChange?: (e: { data: number }) => void };
   }
   class Player {
     constructor(element: HTMLElement, options: PlayerOptions);

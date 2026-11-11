@@ -4,6 +4,7 @@ import { DEFAULT_STATE, authorCounts, characterCounts, filterVideos, indexVideos
 import { formatDate } from "./format.ts";
 import { createCombo } from "./combo.ts";
 import {
+  changeStored,
   createPlaylist,
   deletePlaylist,
   loadPlaylists,
@@ -12,7 +13,6 @@ import {
   parseShare,
   removeItem,
   renamePlaylist,
-  savePlaylists,
   setLoop,
   shareSearch,
   shuffled,
@@ -104,9 +104,8 @@ const shuffleOrders = new Map<string, string[]>();
 const playlistsSection = $<HTMLElement>("playlists");
 let playlistsPageKey = "";
 
-function setLists(next: Playlist[]) {
-  lists = next;
-  savePlaylists(lists);
+function setLists(f: (current: Playlist[]) => Playlist[]) {
+  lists = changeStored(f);
 }
 
 // 保存している ID から、今の一覧にある動画を引く。無いものは数だけ返す
@@ -121,9 +120,9 @@ function renderPlaylistsPage(shared: { name: string; items: string[] } | null) {
     const { videos, missing } = resolveVideos(shared.items);
     renderShared(playlistsSection, shared.name, videos, missing, () => {
       const id = newPlaylistId();
-      setLists(createPlaylist(lists, shared.name, new Date(), id).map((p) => (p.id === id ? { ...p, items: shared.items } : p)));
+      setLists((l) => createPlaylist(l, shared.name, new Date(), id).map((p) => (p.id === id ? { ...p, items: shared.items } : p)));
       update({ view: "playlist", list: id }, { push: true });
-    });
+    }, (v) => update({ v: v.id }, { push: true }));
     return;
   }
   if (state.view === "playlists") {
@@ -131,7 +130,7 @@ function renderPlaylistsPage(shared: { name: string; items: string[] } | null) {
       onOpen: (id) => update({ view: "playlist", list: id }, { push: true }),
       onCreate: (name) => {
         const id = newPlaylistId();
-        setLists(createPlaylist(lists, name, new Date(), id));
+        setLists((l) => createPlaylist(l, name, new Date(), id));
         update({ view: "playlist", list: id }, { push: true });
       },
     });
@@ -140,8 +139,8 @@ function renderPlaylistsPage(shared: { name: string; items: string[] } | null) {
   const p = lists.find((x) => x.id === state.list);
   if (!p) return renderNotFound(playlistsSection, toIndex);
   const { videos, missing } = resolveVideos(p.items);
-  const change = (next: Playlist[]) => {
-    setLists(next);
+  const change = (f: (current: Playlist[]) => Playlist[]) => {
+    setLists(f);
     render();
   };
   renderPlaylistDetail(playlistsSection, p, videos, missing, {
@@ -154,16 +153,16 @@ function renderPlaylistsPage(shared: { name: string; items: string[] } | null) {
     // 画面で隣り合う2本を入れ替える（一覧から外れた動画が間にあっても画面どおり）
     onMove: (i, delta) => {
       const other = videos[i + delta];
-      if (other) change(swapItems(lists, p.id, videos[i].id, other.id));
+      if (other) change((l) => swapItems(l, p.id, videos[i].id, other.id));
     },
-    onRemove: (videoId) => change(removeItem(lists, p.id, videoId)),
-    onRename: (name) => change(renamePlaylist(lists, p.id, name)),
+    onRemove: (videoId) => change((l) => removeItem(l, p.id, videoId)),
+    onRename: (name) => change((l) => renamePlaylist(l, p.id, name)),
     onDelete: () => {
-      setLists(deletePlaylist(lists, p.id));
+      setLists((l) => deletePlaylist(l, p.id));
       shuffleOrders.delete(p.id);
       toIndex();
     },
-    onLoop: (loop) => change(setLoop(lists, p.id, loop)),
+    onLoop: (loop) => change((l) => setLoop(l, p.id, loop)),
     onShare: () => {
       const url = location.origin + location.pathname + shareSearch(p);
       navigator.clipboard
@@ -207,12 +206,12 @@ function drawSavePanel() {
   const videoId = state.v;
   renderSavePanel(savePanel, lists, videoId, {
     onToggle: (id) => {
-      setLists(toggleItem(lists, id, videoId));
+      setLists((l) => toggleItem(l, id, videoId));
       drawSavePanel();
     },
     onCreate: (name) => {
       const id = newPlaylistId();
-      setLists(toggleItem(createPlaylist(lists, name, new Date(), id), id, videoId));
+      setLists((l) => toggleItem(createPlaylist(l, name, new Date(), id), id, videoId));
       drawSavePanel();
     },
   });
@@ -240,6 +239,14 @@ document.addEventListener("keydown", (e) => {
 });
 
 let lastVideoId = "";
+
+// 別のタブでプレイリストが変わったら取り込んで描き直す（再生中の動画は同じならそのまま続く）
+window.addEventListener("storage", (e) => {
+  if (e.key !== null && e.key !== "umamad.playlists") return;
+  lists = loadPlaylists();
+  render();
+  if (!savePanel.hidden) drawSavePanel();
+});
 
 // プレイリストを再生中の視聴ページ
 const upNextSide = $<HTMLElement>("upnext-side");
@@ -352,7 +359,17 @@ function renderMain() {
 }
 
 // 見る動画が変わるとき（と、タイトルでトップに戻るとき）は履歴に積み、ブラウザの「戻る」で戻れるようにする
+const FILTER_KEYS = ["q", "src", "sort", "order", "chara", "author"] as const;
+
 function update(patch: Partial<State>, options: { push?: boolean } = {}) {
+  // 絞り込みを変えたら、プレイリストの画面やプレイリストの再生をやめて、絞り込んだ結果を見せる
+  // （プレイリストの画面では一覧が隠れていて、再生中は「次に見る」が隠れているため）
+  const filterChanged = FILTER_KEYS.some((k) => patch[k] !== undefined && patch[k] !== state[k]);
+  const onPlaylistPage = Boolean(state.view || (!state.v && parseShare(location.search)));
+  if (filterChanged && (onPlaylistPage || state.list)) {
+    patch = { view: "", list: "", shuffle: false, ...patch };
+    if (onPlaylistPage) options = { ...options, push: true };
+  }
   const before = location.pathname + location.search;
   const push = options.push || (patch.v !== undefined && patch.v !== state.v);
   state = { ...state, ...patch };

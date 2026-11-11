@@ -88,21 +88,33 @@ function isPlaylist(x: unknown): x is Playlist {
 }
 
 // 読めない・壊れているときは空として扱う（プライベートブラウズなどでも動くように）
-export function loadPlaylists(storage: Pick<Storage, "getItem"> = localStorage): Playlist[] {
+export function loadPlaylists(storage?: Pick<Storage, "getItem">): Playlist[] {
   try {
-    const parsed: unknown = JSON.parse(storage.getItem(STORAGE_KEY) ?? "[]");
+    // localStorage に触れただけで例外になるブラウザ設定もあるので、参照も try の中で行う
+    const parsed: unknown = JSON.parse((storage ?? localStorage).getItem(STORAGE_KEY) ?? "[]");
     return Array.isArray(parsed) ? parsed.filter(isPlaylist) : [];
   } catch {
     return [];
   }
 }
 
-export function savePlaylists(lists: Playlist[], storage: Pick<Storage, "setItem"> = localStorage): void {
+export function savePlaylists(lists: Playlist[], storage?: Pick<Storage, "setItem">): void {
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(lists));
+    (storage ?? localStorage).setItem(STORAGE_KEY, JSON.stringify(lists));
   } catch {
     // 保存できなくても画面は動かし続ける
   }
+}
+
+// 変更のたびに保存先から読み直してから当てる。手元の古い一覧で上書きして、
+// 別のタブで作ったり消したりした変更を消してしまわないように
+export function changeStored(
+  f: (lists: Playlist[]) => Playlist[],
+  storage?: Pick<Storage, "getItem" | "setItem">,
+): Playlist[] {
+  const next = f(loadPlaylists(storage));
+  savePlaylists(next, storage);
+  return next;
 }
 
 export function shareSearch(p: { name: string; items: string[] }): string {
