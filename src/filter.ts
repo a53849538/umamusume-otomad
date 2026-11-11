@@ -9,9 +9,12 @@ export type State = {
   chara: string;
   author: string; // 投稿者名
   v: string; // 視聴ページで再生中の動画 ID。一覧のときは空
+  view: "" | "playlists" | "playlist"; // プレイリストの一覧・中身の画面
+  list: string; // プレイリスト ID（中身の画面と、プレイリストを再生中の視聴ページ）
+  shuffle: boolean; // プレイリストをシャッフルで再生中
 };
 
-export const DEFAULT_STATE: State = { q: "", src: "all", sort: "new", order: "desc", chara: "", author: "", v: "" };
+export const DEFAULT_STATE: State = { q: "", src: "all", sort: "new", order: "desc", chara: "", author: "", v: "", view: "", list: "", shuffle: false };
 
 export type Indexed = { video: Video; haystack: string };
 

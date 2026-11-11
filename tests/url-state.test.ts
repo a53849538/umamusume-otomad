@@ -25,4 +25,15 @@ describe("url-state", () => {
     expect(parseState("?sort=bogus&src=x").sort).toBe("new");
     expect(parseState("?sort=bogus&src=x").src).toBe("all");
   });
+  it("round-trips playlist params", () => {
+    const s = { ...DEFAULT_STATE, v: "sm1", list: "pl-a", shuffle: true };
+    expect(parseState(stringifyState(s))).toEqual(s);
+    expect(stringifyState({ ...DEFAULT_STATE, view: "playlists" })).toBe("?view=playlists");
+    expect(stringifyState({ ...DEFAULT_STATE, view: "playlist", list: "pl-a" })).toBe("?view=playlist&list=pl-a");
+  });
+  it("ignores unknown view and treats only shuffle=1 as true", () => {
+    expect(parseState("?view=hack").view).toBe("");
+    expect(parseState("?shuffle=yes").shuffle).toBe(false);
+    expect(parseState("?shuffle=1").shuffle).toBe(true);
+  });
 });
