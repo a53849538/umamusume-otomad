@@ -52,6 +52,13 @@ export function upNext(results: Video[], currentId: string): Video[] {
   return results.filter((v) => v.id !== currentId);
 }
 
+// 連続再生で次に流す動画。一覧の中で今の動画の次（「次に見る」の先頭だと2本を往復してしまう）。
+// 最後まで来たら null、今の動画が一覧に無ければ先頭
+export function nextInList(results: Video[], currentId: string): Video | null {
+  const i = results.findIndex((v) => v.id === currentId);
+  return results[i + 1] ?? null;
+}
+
 export type Option = { name: string; count: number };
 
 // 絞り込み欄の候補。表記ゆれを吸収して部分一致で探し、元の並び（件数の多い順）を保つ

@@ -511,6 +511,24 @@ main {
   font-size: 0.9rem;
 }
 
+/* 連続再生スイッチ */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .btn-ghost,
 .btn-accent {
   max-width: 100%;

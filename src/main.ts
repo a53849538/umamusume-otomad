@@ -1,6 +1,6 @@
 import "./style.css";
 import videosJson from "../data/videos.json";
-import { DEFAULT_STATE, authorCounts, characterCounts, filterVideos, indexVideos, upNext, type State } from "./filter.ts";
+import { DEFAULT_STATE, authorCounts, characterCounts, filterVideos, indexVideos, nextInList, upNext, type State } from "./filter.ts";
 import { formatDate } from "./format.ts";
 import { createCombo } from "./combo.ts";
 import { renderCards } from "./render.ts";
@@ -26,6 +26,22 @@ const orderButton = $<HTMLButtonElement>("order");
 const browse = $<HTMLElement>("browse");
 const watch = $<HTMLElement>("watch");
 const watchAuthor = $<HTMLButtonElement>("watch-author");
+const autoplayInput = $<HTMLInputElement>("autoplay");
+
+// 連続再生スイッチ。最初はオフで、オン・オフはこの端末のブラウザに覚えておく
+const AUTOPLAY_KEY = "umamad.autoplay";
+try {
+  autoplayInput.checked = localStorage.getItem(AUTOPLAY_KEY) === "1";
+} catch {
+  // 読めなくてもオフのまま動く
+}
+autoplayInput.addEventListener("change", () => {
+  try {
+    localStorage.setItem(AUTOPLAY_KEY, autoplayInput.checked ? "1" : "0");
+  } catch {
+    // 保存できなくても今の画面では効く
+  }
+});
 
 // 一覧と「次に見る」の両方で使う、少しずつ表示するリスト
 function pager(container: HTMLElement, more: HTMLButtonElement, empty: HTMLElement, size: number) {
@@ -75,10 +91,14 @@ function render() {
   document.body.classList.toggle("watching", Boolean(current));
 
   if (current) {
-    showVideo(current, () => {}); // 連続再生は Task 4 でつなぐ
+    const next = upNext(results, current.id);
+    // 終わったら、連続再生がオンなら一覧の中で次の動画へ
+    showVideo(current, () => {
+      const following = nextInList(results, current.id);
+      if (autoplayInput.checked && following) open(following);
+    });
     watchAuthor.hidden = !current.author;
     watchAuthor.textContent = current.author ? `${current.author.name} さんの動画を見る` : "";
-    const next = upNext(results, current.id);
     $("watch-count").textContent = `${next.length.toLocaleString("ja-JP")}件`;
     // 絞り込みが同じまま動画だけ切り替えたときは、「次に見る」の件数と位置をそのまま残す
     const keep = wasWatching && key === upNextKey;

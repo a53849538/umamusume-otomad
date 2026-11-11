@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_STATE, authorCounts, characterCounts, filterVideos, indexVideos, matchOptions, upNext } from "../src/filter.ts";
+import { DEFAULT_STATE, authorCounts, characterCounts, filterVideos, indexVideos, matchOptions, nextInList, upNext } from "../src/filter.ts";
 import { makeVideo } from "./helpers.ts";
 
 const videos = [
@@ -100,5 +100,20 @@ describe("matchOptions", () => {
   });
   it("returns nothing when no name matches", () => {
     expect(matchOptions(options, "スペ")).toEqual([]);
+  });
+});
+
+describe("nextInList", () => {
+  const list = [makeVideo({ id: "a" }), makeVideo({ id: "b" }), makeVideo({ id: "c" })];
+  it("goes to the video after the current one, so it never bounces back", () => {
+    expect(nextInList(list, "a")?.id).toBe("b");
+    expect(nextInList(list, "b")?.id).toBe("c");
+  });
+  it("stops at the end of the list", () => {
+    expect(nextInList(list, "c")).toBeNull();
+  });
+  it("starts from the top when the current video is not in the list", () => {
+    expect(nextInList(list, "zzz")?.id).toBe("a");
+    expect(nextInList([], "a")).toBeNull();
   });
 });
