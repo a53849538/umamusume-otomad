@@ -763,3 +763,48 @@ main {
   opacity: 0.35;
   cursor: default;
 }
+
+/* 視聴ページの「＋ 保存」パネル */
+.save-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  max-width: 420px;
+}
+
+.save-panel[hidden] {
+  display: none;
+}
+
+.save-title {
+  margin: 0 0 4px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.save-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  cursor: pointer;
+}
+
+.save-item input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.save-item-name {
+  overflow-wrap: anywhere;
+}
+
+.save-panel .pl-create {
+  margin: 6px 0 0;
+}

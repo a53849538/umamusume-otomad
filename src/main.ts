@@ -16,9 +16,10 @@ import {
   shareSearch,
   shuffled,
   swapItems,
+  toggleItem,
   type Playlist,
 } from "./playlists.ts";
-import { renderNotFound, renderPlaylistDetail, renderPlaylistIndex, renderShared } from "./playlist-view.ts";
+import { renderNotFound, renderPlaylistDetail, renderPlaylistIndex, renderSavePanel, renderShared } from "./playlist-view.ts";
 import { renderCards } from "./render.ts";
 import type { Video, VideosFile } from "./types.ts";
 import { parseState, stringifyState } from "./url-state.ts";
@@ -197,6 +198,48 @@ function render() {
   renderMain();
 }
 
+// 視聴ページの「＋ 保存」パネル
+const saveButton = $<HTMLButtonElement>("watch-save");
+const savePanel = $<HTMLElement>("save-panel");
+
+function drawSavePanel() {
+  const videoId = state.v;
+  renderSavePanel(savePanel, lists, videoId, {
+    onToggle: (id) => {
+      setLists(toggleItem(lists, id, videoId));
+      drawSavePanel();
+    },
+    onCreate: (name) => {
+      const id = newPlaylistId();
+      setLists(toggleItem(createPlaylist(lists, name, new Date(), id), id, videoId));
+      drawSavePanel();
+    },
+  });
+}
+
+function setSavePanel(open: boolean) {
+  savePanel.hidden = !open;
+  saveButton.setAttribute("aria-expanded", String(open));
+  if (open) {
+    drawSavePanel();
+    // プレーヤーの下にあるので、開いたパネルが画面の外にならないよう見える位置までスクロールする
+    savePanel.scrollIntoView({ block: "nearest" });
+  }
+}
+
+saveButton.addEventListener("click", () => setSavePanel(savePanel.hidden !== false));
+// パネルの外を押すか Esc で閉じる。押した直後にパネルを描き直すと押した要素が消えるので、
+// contains ではなく押した瞬間のつながり（composedPath）で中か外かを見る
+document.addEventListener("click", (e) => {
+  const path = e.composedPath();
+  if (!savePanel.hidden && !path.includes(savePanel) && !path.includes(saveButton)) setSavePanel(false);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !savePanel.hidden) setSavePanel(false);
+});
+
+let lastVideoId = "";
+
 function renderMain() {
   const results = filterVideos(items, state);
   const current = state.v ? byId.get(state.v) : undefined;
@@ -208,6 +251,10 @@ function renderMain() {
   browse.hidden = Boolean(current);
   watch.hidden = !current;
   document.body.classList.toggle("watching", Boolean(current));
+
+  // 動画が変わったら「＋ 保存」のパネルは閉じる
+  if (state.v !== lastVideoId) setSavePanel(false);
+  lastVideoId = state.v;
 
   if (current) {
     const next = upNext(results, current.id);

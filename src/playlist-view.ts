@@ -148,3 +148,26 @@ export function renderNotFound(container: HTMLElement, onBack: () => void): void
     el("p", "empty", "プレイリストが見つかりませんでした"),
   );
 }
+
+// 視聴ページの「＋ 保存」。チェックで入れる・外す。新しく作ったプレイリストには今の動画を入れる
+export function renderSavePanel(
+  container: HTMLElement,
+  lists: Playlist[],
+  videoId: string,
+  h: { onToggle(id: string): void; onCreate(name: string): void },
+): void {
+  const items = lists.map((p) => {
+    const label = el("label", "save-item");
+    const input = el("input");
+    input.type = "checkbox";
+    input.checked = p.items.includes(videoId);
+    input.addEventListener("change", () => h.onToggle(p.id));
+    label.append(input, el("span", "save-item-name", p.name));
+    return label;
+  });
+  container.replaceChildren(
+    el("p", "save-title", "プレイリストに保存"),
+    ...(items.length ? items : [el("p", "pl-note", "まだプレイリストがありません")]),
+    createForm(h.onCreate, "作成して保存"),
+  );
+}
