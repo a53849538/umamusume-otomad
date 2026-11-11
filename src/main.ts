@@ -75,7 +75,7 @@ function render() {
   document.body.classList.toggle("watching", Boolean(current));
 
   if (current) {
-    showVideo(current);
+    showVideo(current, () => {}); // 連続再生は Task 4 でつなぐ
     watchAuthor.hidden = !current.author;
     watchAuthor.textContent = current.author ? `${current.author.name} さんの動画を見る` : "";
     const next = upNext(results, current.id);

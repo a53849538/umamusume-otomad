@@ -1,4 +1,3 @@
-import type { Video } from "./types.ts";
 
 function unit(n: number, base: number, suffix: string): string {
   return `${(n / base).toFixed(1).replace(/\.0$/, "")}${suffix}`;
@@ -21,10 +20,4 @@ const DATE = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "n
 
 export function formatDate(iso: string): string {
   return DATE.format(new Date(iso));
-}
-
-export function embedUrl(video: Video): string {
-  return video.source === "youtube"
-    ? `https://www.youtube-nocookie.com/embed/${video.id.replace(/^yt:/, "")}?autoplay=1`
-    : `https://embed.nicovideo.jp/watch/${video.id}?autoplay=1`;
 }
